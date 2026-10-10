@@ -1,0 +1,18 @@
+{
+  "name": "simsimplay",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "services/shared",
+    "services/simsimplay-api",
+    "services/simsimplay-web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=services/shared && npm run build --workspace=services/simsimplay-api && npm run build --workspace=services/simsimplay-web",
+    "dev:api": "npm run start:dev --workspace=services/simsimplay-api",
+    "dev:web": "npm run dev --workspace=services/simsimplay-web",
+    "migrate": "node infra/migrations/migrate.cjs up",
+    "migrate:down": "node infra/migrations/migrate.cjs down",
+    "test": "npm test --workspace=services/simsimplay-api && npm test --workspace=services/simsimplay-web"
+  }
+}
