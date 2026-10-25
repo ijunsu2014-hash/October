@@ -30,7 +30,8 @@ PR에서는 빌드와 테스트만 수행하고 `main` push 또는 `main`의 수
 빌드 실패 시 배포 작업은 실행되지 않습니다. 운영 배포는 직렬화하고 중간 취소하지 않습니다.
 
 GitHub `production` 환경은 배포 브랜치를 `main`으로 제한해야 합니다.
-OIDC 신뢰 대상은 `repo:ijunsu2014-hash/October:environment:production`입니다.
+OIDC 신뢰 대상은 `repo:ijunsu2014-hash@277180662/October@1412652139:environment:production`입니다.
+GitHub가 실제 발급하는 소유자·저장소 ID 포함 subject를 정확히 일치시킵니다.
 배포 작업에만 `id-token: write` 권한을 주며 Azure 클라이언트 비밀이나 게시 프로필은 사용하지 않습니다.
 API의 Website Contributor는 API 하나에, SWA의 Contributor는 SWA 하나에만 부여합니다.
 SWA 업로드 토큰은 OIDC 로그인 후 메모리로 조회하고 로그에서 마스킹하며 저장하지 않습니다.

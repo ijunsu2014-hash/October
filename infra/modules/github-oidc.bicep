@@ -21,7 +21,7 @@ resource githubFederation 'Microsoft.ManagedIdentity/userAssignedIdentities/fede
     audiences: [
       'api://AzureADTokenExchange'
     ]
-    subject: 'repo:ijunsu2014-hash/October:environment:production'
+    subject: 'repo:ijunsu2014-hash@277180662/October@1412652139:environment:production'
   }
 }
 
