@@ -20,15 +20,31 @@ export class AuthService {
   constructor(@Inject(DB_CLIENT) private readonly db: DbClient) {}
 
   async register(email: string, password: string, nickname: string): Promise<User> {
+    const normalizedNickname = nickname.trim();
     const existing = await this.db.query<UserRow>("SELECT id FROM users WHERE email = $1", [email]);
     if (existing.length > 0) {
       throw new AppError("CONFLICT", "An account with this email already exists", 409);
     }
-    const passwordHash = await bcrypt.hash(password, 10);
-    const rows = await this.db.query<UserRow>(
-      "INSERT INTO users (email, nickname, password_hash) VALUES ($1, $2, $3) RETURNING id, email, nickname, password_hash",
-      [email, nickname, passwordHash],
+    const existingNickname = await this.db.query<UserRow>(
+      "SELECT id FROM users WHERE LOWER(BTRIM(nickname)) = LOWER($1)",
+      [normalizedNickname],
     );
+    if (existingNickname.length > 0) {
+      throw new AppError("CONFLICT", "This nickname is already taken", 409);
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    let rows: UserRow[];
+    try {
+      rows = await this.db.query<UserRow>(
+        "INSERT INTO users (email, nickname, password_hash) VALUES ($1, $2, $3) RETURNING id, email, nickname, password_hash",
+        [email, normalizedNickname, passwordHash],
+      );
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+        throw new AppError("CONFLICT", "An account with this email or nickname already exists", 409);
+      }
+      throw error;
+    }
     const row = rows[0];
     return { id: row.id, email: row.email, nickname: row.nickname };
   }

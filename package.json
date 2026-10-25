@@ -9,6 +9,8 @@
   ],
   "scripts": {
     "build": "npm run build --workspace=services/shared && npm run build --workspace=services/simsimplay-api && npm run build --workspace=services/simsimplay-web",
+    "prestart": "node -e \"const fs=require('fs');const path=require('path');const link=path.join('services/simsimplay-api','node_modules','@simsimplay','shared');const valid=fs.existsSync(path.join(link,'package.json'))&&fs.existsSync(path.join(link,'dist/index.js'));if(!valid){fs.rmSync(link,{recursive:true,force:true});fs.mkdirSync(path.dirname(link),{recursive:true});fs.cpSync(path.resolve('services/shared'),link,{recursive:true})}console.log(require.resolve('@simsimplay/shared',{paths:[path.resolve('services/simsimplay-api')]}))\"",
+    "start": "npm run start --workspace=services/simsimplay-api",
     "dev:api": "npm run start:dev --workspace=services/simsimplay-api",
     "dev:web": "npm run dev --workspace=services/simsimplay-web",
     "migrate": "node infra/migrations/migrate.cjs up",

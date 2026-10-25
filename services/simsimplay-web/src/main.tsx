@@ -1,14 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { FluentProvider } from "@fluentui/react-components";
 import { RouterProvider } from "react-router-dom";
-import { simsimplayTheme } from "./theme";
 import { router } from "./routes/router";
+import { AuthProvider } from "./auth/AuthProvider";
+import { ThemeModeProvider } from "./theme/ThemeModeProvider";
+import "./global.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <FluentProvider theme={simsimplayTheme} style={{ minHeight: "100vh" }}>
-      <RouterProvider router={router} />
-    </FluentProvider>
+    <ThemeModeProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ThemeModeProvider>
   </StrictMode>,
 );

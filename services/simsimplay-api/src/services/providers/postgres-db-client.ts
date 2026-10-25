@@ -1,9 +1,32 @@
 import { Pool } from "pg";
+import { DefaultAzureCredential } from "@azure/identity";
 import { AppConfig } from "../../config/config";
 import { DbClient } from "../interfaces/db-client.interface";
 
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required when managed identity is enabled`);
+  return value;
+}
+
 export class PostgresDbClient implements DbClient {
-  private pool = new Pool({ connectionString: AppConfig.databaseUrl });
+  private credential = process.env.AZURE_USE_MANAGED_IDENTITY === "true" ? new DefaultAzureCredential() : undefined;
+  private pool = new Pool(
+    this.credential
+      ? {
+          host: requiredEnv("PGHOST"),
+          port: Number(process.env.PGPORT ?? 5432),
+          database: requiredEnv("PGDATABASE"),
+          user: requiredEnv("PGUSER"),
+          password: async () => {
+            const token = await this.credential!.getToken("https://ossrdbms-aad.database.windows.net/.default");
+            if (!token) throw new Error("PostgreSQL access token is unavailable");
+            return token.token;
+          },
+          ssl: { rejectUnauthorized: true },
+        }
+      : { connectionString: AppConfig.databaseUrl },
+  );
 
   async query<T = unknown>(text: string, params: unknown[] = []): Promise<T[]> {
     const result = await this.pool.query(text, params);

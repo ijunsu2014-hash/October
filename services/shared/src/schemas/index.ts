@@ -1,9 +1,15 @@
 import { z } from "zod";
 
-export const loginSchema = z.object({
+const credentialSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 });
+
+export const registerSchema = credentialSchema.extend({
+  nickname: z.string().trim().min(1).max(40),
+});
+
+export const loginSchema = credentialSchema;
 
 export const queueSchema = z.object({
   gameType: z.literal("omok"),

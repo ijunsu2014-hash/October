@@ -8,3 +8,4 @@ coverage/
 .DS_Store
 services/simsimplay-api/local.settings.json
 .vite/
+.copilot-azure/

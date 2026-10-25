@@ -52,6 +52,15 @@ export const liveClient: ApiClient = {
     window.localStorage.setItem(tokenStorageKey, result.session.token);
     return result;
   },
+  async register(email, password, nickname): Promise<User> {
+    return request<User>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, nickname }),
+    });
+  },
+  logout(): void {
+    window.localStorage.removeItem(tokenStorageKey);
+  },
   async getCurrentUser(): Promise<User | null> {
     if (!window.localStorage.getItem(tokenStorageKey)) return null;
     return request<User>("/auth/me");

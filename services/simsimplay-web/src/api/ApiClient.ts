@@ -10,6 +10,8 @@ import type {
 
 export interface ApiClient {
   login(email: string, password: string): Promise<LoginResponse>;
+  register(email: string, password: string, nickname: string): Promise<User>;
+  logout(): void;
   getCurrentUser(): Promise<User | null>;
   getGames(): Promise<GameSummary[]>;
   createOmokGame(): Promise<OmokGameState>;

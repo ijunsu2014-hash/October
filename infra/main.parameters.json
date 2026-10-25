@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "simsimplay-dev-958f" },
+    "location": { "value": "koreacentral" },
+    "sessionId": { "value": "958f8d19-cda1-4c61-a877-9dd22e0a0a4f" },
+    "deployedBy": { "value": "이준수" },
+    "createdAt": { "value": "2026-10-24T16:26:20.9954240+09:00" },
+    "entraAdminObjectId": { "value": "7d70415d-b13f-43fb-9cea-e0d7c6115aab" },
+    "entraAdminName": { "value": "ijunsu2014@innodgvibeventure.onmicrosoft.com" },
+    "useExistingPostgres": { "value": true },
+    "appDbName": { "value": "simsimplay" }
+  }
+}

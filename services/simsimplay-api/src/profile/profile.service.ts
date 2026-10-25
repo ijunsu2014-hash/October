@@ -15,10 +15,10 @@ export class ProfileService {
 
   async getProfile(userId: string): Promise<Profile> {
     const rows = await this.db.query<ProfileRow>(
-      "SELECT user_id, nickname, rating FROM profiles WHERE user_id = $1",
+      "SELECT users.id AS user_id, COALESCE(profiles.nickname, users.nickname) AS nickname, COALESCE(profiles.rating, 1000) AS rating FROM users LEFT JOIN profiles ON profiles.user_id = users.id WHERE users.id = $1",
       [userId],
     );
-    const row = rows[0] ?? { user_id: userId, nickname: "플레이어", rating: 1000 };
+    const row = rows[0] ?? { user_id: userId, nickname: "", rating: 1000 };
     return { userId: row.user_id, nickname: row.nickname, rating: row.rating };
   }
 

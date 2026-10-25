@@ -15,10 +15,13 @@ import {
 } from "@fluentui/react-components";
 import type { MatchRecord, Profile } from "@simsimplay/shared";
 import { api } from "../api";
+import { useAuth } from "../auth/AuthProvider";
 
 export function ProfilePage() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [matches, setMatches] = useState<MatchRecord[]>([]);
+  const nickname = profile?.nickname || user?.nickname || "불러오는 중...";
 
   useEffect(() => {
     api.getProfile().then(setProfile);
@@ -29,9 +32,8 @@ export function ProfilePage() {
     <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "24px" }}>
       <Card>
         <CardHeader
-          image={<Avatar name={profile?.nickname ?? "플레이어"} size={56} />}
-          header={<Text weight="semibold">{profile?.nickname ?? "불러오는 중..."}</Text>}
-          description={<Badge appearance="filled" color="brand">레이팅 {profile?.rating ?? "-"}</Badge>}
+          image={<Avatar name={nickname} size={56} />}
+          header={<Text weight="semibold">{nickname}</Text>}
         />
       </Card>
       <div>
@@ -44,7 +46,6 @@ export function ProfilePage() {
               <TableHeaderCell>상대</TableHeaderCell>
               <TableHeaderCell>모드</TableHeaderCell>
               <TableHeaderCell>결과</TableHeaderCell>
-              <TableHeaderCell>레이팅 변화</TableHeaderCell>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -55,7 +56,6 @@ export function ProfilePage() {
                 <TableCell>
                   <Badge color={match.result === "win" ? "success" : "danger"}>{match.result === "win" ? "승리" : "패배"}</Badge>
                 </TableCell>
-                <TableCell>{match.ratingChange > 0 ? `+${match.ratingChange}` : match.ratingChange}</TableCell>
               </TableRow>
             ))}
           </TableBody>

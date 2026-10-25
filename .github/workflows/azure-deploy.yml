@@ -1,0 +1,118 @@
+name: Build and deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Build, test and verify production package
+        env:
+          DEPLOY_ARTIFACT_DIR: ${{ runner.temp }}/api-package
+        run: |
+          test -n "$VITE_API_BASE_URL"
+          bash infra/scripts/build-release.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: api-package
+          path: ${{ runner.temp }}/api-package/api.zip
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: web-package
+          path: services/simsimplay-web/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: ${{ vars.WEB_BASE_URL }}
+    concurrency:
+      group: azure-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP_SERVICE_NAME: ${{ vars.APP_SERVICE_NAME }}
+      STATIC_WEB_APP_NAME: ${{ vars.STATIC_WEB_APP_NAME }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: api-package
+          path: api-package
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: web-package
+          path: web-package
+      - uses: azure/login@8216e11d8cd9b42fe925c852af8e76311ff067ac
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Deploy verified API artifact
+        run: |
+          az webapp deploy --subscription "$AZURE_SUBSCRIPTION_ID" \
+            --resource-group "$AZURE_RESOURCE_GROUP" --name "$APP_SERVICE_NAME" \
+            --type zip --src-path api-package/api.zip --async false \
+            --timeout 600000 --only-show-errors --output none
+          node infra/scripts/verify-health.cjs --api-only
+      - name: Apply migrations inside the app container
+        run: |
+          python3 -m venv "$RUNNER_TEMP/migration-tools"
+          "$RUNNER_TEMP/migration-tools/bin/pip" install --disable-pip-version-check paramiko==3.5.1
+          "$RUNNER_TEMP/migration-tools/bin/python" infra/scripts/migrate-remote.py
+      - name: Deploy verified frontend artifact
+        shell: bash
+        run: |
+          token=$(az staticwebapp secrets list --subscription "$AZURE_SUBSCRIPTION_ID" \
+            --resource-group "$AZURE_RESOURCE_GROUP" --name "$STATIC_WEB_APP_NAME" \
+            --query properties.apiKey --output tsv)
+          test -n "$token"
+          echo "::add-mask::$token"
+          export SWA_CLI_DEPLOYMENT_TOKEN="$token"
+          trap 'unset SWA_CLI_DEPLOYMENT_TOKEN token' EXIT
+          npx --yes @azure/static-web-apps-cli@2.1.0 deploy web-package \
+            --app-name "$STATIC_WEB_APP_NAME" --env production
+      - name: Verify API, database, Redis and frontend
+        run: node infra/scripts/verify-health.cjs
+      - name: Verify publishing authentication stays disabled
+        if: always()
+        shell: bash
+        run: |
+          for policy in scm ftp; do
+            allowed=$(az rest --method get --subscription "$AZURE_SUBSCRIPTION_ID" \
+              --url "/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.Web/sites/$APP_SERVICE_NAME/basicPublishingCredentialsPolicies/$policy?api-version=2023-12-01" \
+              --query properties.allow --output tsv)
+            test "$allowed" = false
+          done

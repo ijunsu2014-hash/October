@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { AuthGuard } from "./auth.guard";
-import { loginSchema } from "@simsimplay/shared";
+import { loginSchema, registerSchema } from "@simsimplay/shared";
 import { AppError } from "../common/errors/app-error";
 
 @Controller("auth")
@@ -9,12 +9,12 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post("register")
-  async register(@Body() body: { email: string; password: string; nickname: string }) {
-    const parsed = loginSchema.safeParse({ email: body.email, password: body.password });
+  async register(@Body() body: unknown) {
+    const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       throw new AppError("VALIDATION_ERROR", "Invalid registration payload", 422, parsed.error.flatten());
     }
-    return this.auth.register(body.email, body.password, body.nickname ?? body.email.split("@")[0]);
+    return this.auth.register(parsed.data.email, parsed.data.password, parsed.data.nickname);
   }
 
   @Post("login")

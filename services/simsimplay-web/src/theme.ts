@@ -1,4 +1,4 @@
-import { createLightTheme, type BrandVariants, type Theme } from "@fluentui/react-components";
+import { createDarkTheme, createLightTheme, type BrandVariants, type Theme } from "@fluentui/react-components";
 
 // Brand ramp derived from plan Section 6 `primary` (#0F766E).
 const brand: BrandVariants = {
@@ -20,6 +20,7 @@ const brand: BrandVariants = {
   160: "#E8F7F5",
 };
 
-export const simsimplayTheme: Theme = {
-  ...createLightTheme(brand),
+export const simsimplayThemes: Record<"light" | "dark", Theme> = {
+  light: { ...createLightTheme(brand) },
+  dark: { ...createDarkTheme(brand) },
 };

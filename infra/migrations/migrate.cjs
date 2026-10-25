@@ -13,10 +13,34 @@ const migrationFiles = fs
   .filter((file) => /^\d+_.+\.sql$/.test(file))
   .sort();
 
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required when managed identity is enabled`);
+  return value;
+}
+
 async function run() {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/simsimplay",
-  });
+  const credential = process.env.AZURE_USE_MANAGED_IDENTITY === "true"
+    ? new (require("@azure/identity").DefaultAzureCredential)()
+    : undefined;
+  const client = new Client(
+    credential
+      ? {
+          host: requiredEnv("PGHOST"),
+          port: Number(process.env.PGPORT ?? 5432),
+          database: requiredEnv("PGDATABASE"),
+          user: requiredEnv("PGUSER"),
+          password: async () => {
+            const token = await credential.getToken("https://ossrdbms-aad.database.windows.net/.default");
+            if (!token) throw new Error("PostgreSQL access token is unavailable");
+            return token.token;
+          },
+          ssl: { rejectUnauthorized: true },
+        }
+      : {
+          connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/simsimplay",
+        },
+  );
   await client.connect();
   try {
     await client.query(
